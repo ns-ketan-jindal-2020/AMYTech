@@ -9,11 +9,11 @@ export const siteMeta = {
   address:
     "AMY TECH DMCC, 1410, One Lake Plaza, Cluster T, Jumeirah Lakes Towers, P O Box 338121, Dubai (UAE)",
   contacts: [
-    {
-      name: "Vinay",
-      phone: "+971 50 9918548",
-      email: "vinay@amytechdmcc.com",
-    },
+    // {
+    //   name: "Vinay",
+    //   phone: "+971 50 9918548",
+    //   email: "vinay@amytechdmcc.com",
+    // },
     {
       name: "Hitesh",
       phone: "+971 55 8593973",

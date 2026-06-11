@@ -67,7 +67,7 @@ export function SiteHeader() {
             variant="accent"
             size="sm"
             className="hidden sm:inline-flex"
-            type="button"
+            asChild
           >
             <Link href="#contact">Reach out</Link>
           </Button>

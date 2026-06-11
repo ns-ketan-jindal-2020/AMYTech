@@ -1,9 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, useInView, type Variants } from "framer-motion";
 import {
   ArrowRight,
   Building2,
@@ -63,6 +63,102 @@ const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
 };
+
+const staggerContainer: Variants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.06,
+    },
+  },
+};
+
+const staggerItem: Variants = {
+  hidden: { opacity: 0, y: 18, filter: "blur(6px)" },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: {
+      duration: 0.45,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+};
+
+function MotionCard({
+  children,
+  className,
+  hover = true,
+}: {
+  children: ReactNode;
+  className?: string;
+  hover?: boolean;
+}) {
+  return (
+    <motion.div
+      variants={staggerItem}
+      whileHover={hover ? { y: -6, scale: 1.01 } : undefined}
+      whileTap={hover ? { scale: 0.99 } : undefined}
+      transition={{ duration: 0.2 }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function AnimatedCount({ value }: { value: string }) {
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const inView = useInView(ref, { once: true, amount: 0.75 });
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    if (!inView) {
+      return;
+    }
+
+    const match = value.match(/^(\d+(?:\.\d+)?)(.*)$/);
+    if (!match) {
+      return;
+    }
+
+    const target = Number.parseFloat(match[1]);
+    const suffix = match[2];
+    let frame = 0;
+    let start: number | null = null;
+
+    const animate = (timestamp: number) => {
+      if (start === null) {
+        start = timestamp;
+      }
+
+      const progress = Math.min((timestamp - start) / 900, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(target * eased);
+
+      if (progress < 1) {
+        frame = window.requestAnimationFrame(animate);
+      }
+    };
+
+    frame = window.requestAnimationFrame(animate);
+    return () => window.cancelAnimationFrame(frame);
+  }, [inView, value]);
+
+  const match = value.match(/^(\d+(?:\.\d+)?)(.*)$/);
+  if (!match) {
+    return <span ref={ref}>{value}</span>;
+  }
+
+  const suffix = match[2];
+  const formatted = Number.isInteger(Number.parseFloat(match[1]))
+    ? Math.round(display).toString()
+    : display.toFixed(1);
+
+  return <span ref={ref}>{formatted + suffix}</span>;
+}
 
 function SectionShell({
   id,
@@ -132,19 +228,26 @@ export function HeroSection() {
             {siteMeta.description}
           </p>
 
-          <div className="mt-8 flex flex-wrap gap-3">
+          <motion.div
+            className="mt-8 flex flex-wrap gap-3"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+          >
             {heroHighlights.map((item) => (
-              <div
+              <motion.div
                 key={item}
+                variants={staggerItem}
+                whileHover={{ y: -3, scale: 1.02 }}
                 className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 backdrop-blur"
               >
                 {item}
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
 
           <div className="mt-10 flex flex-wrap items-center gap-4">
-            <Button variant="accent" size="lg" type="button">
+            <Button variant="accent" size="lg" asChild>
               <Link href="#services" className="inline-flex items-center gap-2">
                 Explore the portfolio <ArrowRight className="h-4 w-4" />
               </Link>
@@ -153,25 +256,32 @@ export function HeroSection() {
               variant="outline"
               size="lg"
               className="border-white/15 bg-white/5 text-white hover:bg-white/10"
-              type="button"
+              asChild
             >
               <Link href="#contact">Contact AMY Tech</Link>
             </Button>
           </div>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-3">
+          <motion.div
+            className="mt-10 grid gap-4 sm:grid-cols-3"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+          >
             {insightMetrics.map((metric) => (
-              <div
+              <motion.div
                 key={metric.label}
+                variants={staggerItem}
+                whileHover={{ y: -5, scale: 1.02 }}
                 className="rounded-2xl border border-white/10 bg-white/5 p-4"
               >
                 <div className="text-2xl font-semibold text-white">
-                  {metric.value}
+                  <AnimatedCount value={metric.value} />
                 </div>
                 <div className="mt-1 text-sm text-white/70">{metric.label}</div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </motion.div>
 
         <motion.div
@@ -226,9 +336,14 @@ export function HeroSection() {
             </CardContent>
           </Card>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <motion.div
+            className="grid gap-4 sm:grid-cols-2"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+          >
             {presentationPillars.map((pillar) => (
-              <Card
+              <MotionCard
                 key={pillar.title}
                 className={cn("overflow-hidden", pillar.accent)}
               >
@@ -236,9 +351,9 @@ export function HeroSection() {
                   <CardTitle>{pillar.title}</CardTitle>
                   <CardDescription>{pillar.description}</CardDescription>
                 </CardHeader>
-              </Card>
+              </MotionCard>
             ))}
-          </div>
+          </motion.div>
         </motion.div>
       </div>
     </section>
@@ -253,46 +368,59 @@ export function OverviewSection() {
       title="From corporate profile to a richer website narrative"
       description="The slide deck is organized around AMY Tech's Microsoft partnership story, service breadth, productized solutions, delivery model, and customer-facing outcomes."
     >
-      <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Core story</CardTitle>
-            <CardDescription>What the deck says at a glance</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm leading-7 text-muted-foreground">
-            {summaryBullets.map((bullet) => (
-              <div key={bullet} className="flex gap-3">
-                <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-primary" />
-                <span>{bullet}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-        <div className="grid gap-4 sm:grid-cols-2">
+      <motion.div
+        className="grid items-stretch gap-4 lg:grid-cols-[0.95fr_1.05fr]"
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.2 }}
+      >
+        <MotionCard hover={false}>
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>Core story</CardTitle>
+              <CardDescription>What the deck says at a glance</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm leading-7 text-muted-foreground">
+              {summaryBullets.map((bullet) => (
+                <div key={bullet} className="flex gap-3">
+                  <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-primary" />
+                  <span>{bullet}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </MotionCard>
+        <motion.div
+          className="grid items-stretch gap-4 sm:grid-cols-2"
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+        >
           {serviceCards.slice(0, 4).map((item) => (
-            <Card
-              key={item.title}
-              className="group transition-transform duration-300 hover:-translate-y-1"
-            >
-              <CardHeader>
-                <CardTitle className="text-lg">{item.title}</CardTitle>
-                <CardDescription>{item.summary}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {item.bullets.slice(0, 3).map((bullet) => (
-                  <div
-                    key={bullet}
-                    className="flex items-center gap-2 text-sm text-muted-foreground"
-                  >
-                    <ChevronRight className="h-4 w-4 text-primary" />
-                    <span>{bullet}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+            <MotionCard key={item.title}>
+              <Card className="group h-full transition-transform duration-300">
+                <CardHeader>
+                  <CardTitle className="text-lg">{item.title}</CardTitle>
+                  <CardDescription>{item.summary}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {item.bullets.slice(0, 3).map((bullet) => (
+                    <div
+                      key={bullet}
+                      className="flex items-center gap-2 text-sm text-muted-foreground"
+                    >
+                      <ChevronRight className="h-4 w-4 text-primary" />
+                      <span>{bullet}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </MotionCard>
           ))}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </SectionShell>
   );
 }
@@ -305,30 +433,38 @@ export function ServicesSection() {
       title="A complete delivery portfolio built around Microsoft technologies"
       description="The deck positions AMY Tech as a partner for implementation, recovery, training, support, low-code delivery, UX, and managed capacity."
     >
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <motion.div
+        className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3"
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+      >
         {serviceCards.map((card) => (
-          <Card key={card.title} className="h-full">
-            <CardHeader>
-              <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <CardTitle>{card.title}</CardTitle>
-              <CardDescription>{card.summary}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {card.bullets.map((bullet) => (
-                <div
-                  key={bullet}
-                  className="flex items-center gap-2 text-sm text-muted-foreground"
-                >
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                  <span>{bullet}</span>
+          <MotionCard key={card.title} className="h-full">
+            <Card className="h-full">
+              <CardHeader>
+                <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <Sparkles className="h-5 w-5" />
                 </div>
-              ))}
-            </CardContent>
-          </Card>
+                <CardTitle>{card.title}</CardTitle>
+                <CardDescription>{card.summary}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {card.bullets.map((bullet) => (
+                  <div
+                    key={bullet}
+                    className="flex items-center gap-2 text-sm text-muted-foreground"
+                  >
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                    <span>{bullet}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </MotionCard>
         ))}
-      </div>
+      </motion.div>
     </SectionShell>
   );
 }
@@ -352,24 +488,26 @@ export function PlatformSection() {
 
         {platformTabs.map((tab) => (
           <TabsContent key={tab.id} value={tab.id}>
-            <Card>
-              <CardHeader>
-                <CardTitle>{tab.title}</CardTitle>
-                <CardDescription>{tab.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  {tab.points.map((point) => (
-                    <div
-                      key={point}
-                      className="rounded-2xl border border-border/70 bg-muted/30 p-4 text-sm leading-6 text-foreground"
-                    >
-                      {point}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <MotionCard hover={false}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>{tab.title}</CardTitle>
+                  <CardDescription>{tab.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    {tab.points.map((point) => (
+                      <div
+                        key={point}
+                        className="rounded-2xl border border-border/70 bg-muted/30 p-4 text-sm leading-6 text-foreground"
+                      >
+                        {point}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </MotionCard>
           </TabsContent>
         ))}
       </Tabs>
@@ -385,71 +523,81 @@ export function CapabilitiesSection() {
       title="Business Central capability map"
       description="The source slides describe a broad ERP footprint covering financial management, sales, service, supply chain, manufacturing, reporting, and Microsoft 365 integrations."
     >
-      <div className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Functional coverage</CardTitle>
-            <CardDescription>
-              Module coverage extracted from the deck
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              {bcCapabilities.map((row) => (
-                <div
-                  key={row.module}
-                  className="rounded-2xl border border-border/70 bg-muted/20 p-4"
-                >
-                  <div className="font-medium text-foreground">
-                    {row.module}
+      <motion.div
+        className="grid items-stretch gap-4 lg:grid-cols-[1.08fr_0.92fr]"
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+      >
+        <MotionCard hover={false}>
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>Functional coverage</CardTitle>
+              <CardDescription>
+                Module coverage extracted from the deck
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                {bcCapabilities.map((row) => (
+                  <div
+                    key={row.module}
+                    className="rounded-2xl border border-border/70 bg-muted/20 p-4"
+                  >
+                    <div className="font-medium text-foreground">
+                      {row.module}
+                    </div>
+                    <div className="mt-2 space-y-1 text-sm leading-6 text-muted-foreground">
+                      {row.details.map((detail) => (
+                        <div key={detail} className="flex gap-2">
+                          <ChevronRight className="mt-1 h-3.5 w-3.5 shrink-0 text-primary" />
+                          <span>{detail}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="mt-2 space-y-1 text-sm leading-6 text-muted-foreground">
-                    {row.details.map((detail) => (
-                      <div key={detail} className="flex gap-2">
-                        <ChevronRight className="mt-1 h-3.5 w-3.5 shrink-0 text-primary" />
-                        <span>{detail}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </MotionCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Business Central comparison</CardTitle>
-            <CardDescription>
-              How the deck frames the value proposition
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-hidden rounded-2xl border border-border/70">
-              <table className="w-full border-collapse text-left text-sm">
-                <thead className="bg-muted/40 text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Capability</th>
-                    <th className="px-4 py-3 font-medium">What it means</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {platformComparison.map((row) => (
-                    <tr key={row.label} className="border-t border-border/70">
-                      <td className="px-4 py-3 font-medium text-foreground">
-                        {row.label}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {row.value}
-                      </td>
+        <MotionCard hover={false}>
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>Business Central comparison</CardTitle>
+              <CardDescription>
+                How the deck frames the value proposition
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-hidden rounded-2xl border border-border/70">
+                <table className="w-full border-collapse text-left text-sm">
+                  <thead className="bg-muted/40 text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Capability</th>
+                      <th className="px-4 py-3 font-medium">What it means</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                  </thead>
+                  <tbody>
+                    {platformComparison.map((row) => (
+                      <tr key={row.label} className="border-t border-border/70">
+                        <td className="px-4 py-3 font-medium text-foreground">
+                          {row.label}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {row.value}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </MotionCard>
+      </motion.div>
     </SectionShell>
   );
 }
@@ -462,19 +610,37 @@ export function ProcessSection() {
       title="A four-step workflow that moves from discovery to support"
       description="Process slides are translated into a practical stepper that explains how AMY Tech works with customers from the first conversation through ongoing support."
     >
-      <div className="grid gap-4 lg:grid-cols-4">
+      <motion.ol
+        className="relative grid gap-4 lg:grid-cols-4"
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.2 }}
+      >
+        <div className="absolute left-[1.25rem] top-0 hidden h-full w-px bg-gradient-to-b from-primary/40 via-primary/15 to-transparent lg:block" />
         {processSteps.map((step, index) => (
-          <Card key={step.title} className="relative overflow-hidden">
-            <CardHeader>
-              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 font-display text-lg font-semibold text-primary">
-                {index + 1}
-              </div>
-              <CardTitle className="text-lg">{step.title}</CardTitle>
-              <CardDescription>{step.description}</CardDescription>
-            </CardHeader>
-          </Card>
+          <motion.li key={step.title} className="relative">
+            <MotionCard hover={false} className="relative overflow-hidden">
+              <Card>
+                <CardHeader>
+                  <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 font-display text-lg font-semibold text-primary shadow-sm shadow-primary/10">
+                    <motion.span
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      whileInView={{ scale: 1, opacity: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: index * 0.08, duration: 0.35 }}
+                    >
+                      {index + 1}
+                    </motion.span>
+                  </div>
+                  <CardTitle className="text-lg">{step.title}</CardTitle>
+                  <CardDescription>{step.description}</CardDescription>
+                </CardHeader>
+              </Card>
+            </MotionCard>
+          </motion.li>
         ))}
-      </div>
+      </motion.ol>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Card>
@@ -537,38 +703,46 @@ export function ArchitectureSection() {
       title="A layered Microsoft architecture that unifies data, apps, and intelligence"
       description="Architecture slides become a vertical stack that explains how people, productivity tools, business apps, and AI work together on the Microsoft cloud."
     >
-      <div className="grid gap-4 lg:grid-cols-5">
+      <motion.div
+        className="grid gap-4 lg:grid-cols-5"
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+      >
         {architectureLayers.map((layer, index) => (
-          <Card key={layer.title} className="relative overflow-hidden">
-            <CardHeader>
-              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                {index === 0 ? (
-                  <Users2 className="h-5 w-5" />
-                ) : index === 1 ? (
-                  <Laptop className="h-5 w-5" />
-                ) : index === 2 ? (
-                  <Building2 className="h-5 w-5" />
-                ) : index === 3 ? (
-                  <PieChart className="h-5 w-5" />
-                ) : (
-                  <Cloud className="h-5 w-5" />
-                )}
-              </div>
-              <CardTitle className="text-lg">{layer.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {layer.items.map((item) => (
-                <div
-                  key={item}
-                  className="rounded-2xl border border-border/70 bg-muted/20 px-3 py-2 text-sm text-muted-foreground"
-                >
-                  {item}
+          <MotionCard key={layer.title} className="relative overflow-hidden">
+            <Card>
+              <CardHeader>
+                <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  {index === 0 ? (
+                    <Users2 className="h-5 w-5" />
+                  ) : index === 1 ? (
+                    <Laptop className="h-5 w-5" />
+                  ) : index === 2 ? (
+                    <Building2 className="h-5 w-5" />
+                  ) : index === 3 ? (
+                    <PieChart className="h-5 w-5" />
+                  ) : (
+                    <Cloud className="h-5 w-5" />
+                  )}
                 </div>
-              ))}
-            </CardContent>
-          </Card>
+                <CardTitle className="text-lg">{layer.title}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {layer.items.map((item) => (
+                  <div
+                    key={item}
+                    className="rounded-2xl border border-border/70 bg-muted/20 px-3 py-2 text-sm text-muted-foreground"
+                  >
+                    {item}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </MotionCard>
         ))}
-      </div>
+      </motion.div>
     </SectionShell>
   );
 }
@@ -581,75 +755,103 @@ export function InsightsSection() {
       title="Decision support, Copilot, and AI use cases"
       description="The deck highlights practical ways to move from reporting toward prediction, automation, and guided decision-making."
     >
-      <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Decision support</CardTitle>
-            <CardDescription>
-              Directly reflected from the slide content
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {decisionSupport.map((item) => (
-              <div
-                key={item.title}
-                className="rounded-2xl border border-border/70 bg-muted/20 p-4"
-              >
-                <div className="font-medium text-foreground">{item.title}</div>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {item.summary}
-                </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>AI use cases</CardTitle>
-            <CardDescription>
-              Marketing, forecasting, collections, and cash-flow analysis
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              {aiUseCases.map((item) => (
+      <motion.div
+        className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]"
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.2 }}
+      >
+        <MotionCard hover={false}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Decision support</CardTitle>
+              <CardDescription>
+                Directly reflected from the slide content
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {decisionSupport.map((item) => (
                 <div
                   key={item.title}
                   className="rounded-2xl border border-border/70 bg-muted/20 p-4"
                 >
-                  <div className="flex items-center gap-2 text-primary">
-                    <BrainCircuit className="h-4 w-4" />
-                    <div className="font-medium text-foreground">
-                      {item.title}
-                    </div>
+                  <div className="font-medium text-foreground">
+                    {item.title}
                   </div>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    {item.challenge}
+                    {item.summary}
                   </p>
-                  <div className="mt-3 rounded-2xl bg-background px-3 py-2 text-sm leading-6 text-foreground">
-                    {item.value}
-                  </div>
                 </div>
               ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mt-6 grid gap-4 lg:grid-cols-4">
-        {insightMetrics.map((metric) => (
-          <Card key={metric.label}>
-            <CardHeader>
-              <CardDescription>{metric.label}</CardDescription>
-              <CardTitle className="text-3xl">{metric.value}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm leading-6 text-muted-foreground">
-              {metric.detail}
             </CardContent>
           </Card>
+        </MotionCard>
+
+        <MotionCard hover={false}>
+          <Card>
+            <CardHeader>
+              <CardTitle>AI use cases</CardTitle>
+              <CardDescription>
+                Marketing, forecasting, collections, and cash-flow analysis
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <motion.div
+                className="grid gap-4 md:grid-cols-2"
+                variants={staggerContainer}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.2 }}
+              >
+                {aiUseCases.map((item) => (
+                  <MotionCard
+                    key={item.title}
+                    className="rounded-2xl border border-border/70 bg-muted/20 p-4"
+                  >
+                    <div className="flex items-center gap-2 text-primary">
+                      <BrainCircuit className="h-4 w-4" />
+                      <div className="font-medium text-foreground">
+                        {item.title}
+                      </div>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      {item.challenge}
+                    </p>
+                    <div className="mt-3 rounded-2xl bg-background px-3 py-2 text-sm leading-6 text-foreground">
+                      {item.value}
+                    </div>
+                  </MotionCard>
+                ))}
+              </motion.div>
+            </CardContent>
+          </Card>
+        </MotionCard>
+      </motion.div>
+
+      <motion.div
+        className="mt-6 grid gap-4 lg:grid-cols-4"
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.2 }}
+      >
+        {insightMetrics.map((metric) => (
+          <MotionCard key={metric.label}>
+            <Card>
+              <CardHeader>
+                <CardDescription>{metric.label}</CardDescription>
+                <CardTitle className="text-3xl">
+                  <AnimatedCount value={metric.value} />
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm leading-6 text-muted-foreground">
+                {metric.detail}
+              </CardContent>
+            </Card>
+          </MotionCard>
         ))}
-      </div>
+      </motion.div>
     </SectionShell>
   );
 }
@@ -662,48 +864,66 @@ export function EngagementSection() {
       title="Flexible delivery models aligned with real industry needs"
       description="The company presents multiple engagement models and a broad set of verticals supported by the same Microsoft delivery discipline."
     >
-      <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Engagement models</CardTitle>
-            <CardDescription>How the company delivers work</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2">
-            {engagementModels.map((item) => (
-              <div
-                key={item.title}
-                className="rounded-2xl border border-border/70 bg-muted/20 p-4"
-              >
-                <div className="font-medium text-foreground">{item.title}</div>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {item.description}
-                </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Industry coverage</CardTitle>
-            <CardDescription>
-              Verticals explicitly named in the deck
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {industries.map((industry) => (
-                <div
-                  key={industry}
-                  className="rounded-2xl border border-border/70 bg-muted/20 px-3 py-3 text-sm text-foreground"
+      <motion.div
+        className="grid items-stretch gap-4 xl:grid-cols-[1fr_1fr]"
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.18 }}
+      >
+        <MotionCard hover={false}>
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>Engagement models</CardTitle>
+              <CardDescription>How the company delivers work</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-2">
+              {engagementModels.map((item) => (
+                <MotionCard
+                  key={item.title}
+                  className="rounded-2xl border border-border/70 bg-muted/20 p-4"
                 >
-                  {industry}
-                </div>
+                  <div className="font-medium text-foreground">
+                    {item.title}
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {item.description}
+                  </p>
+                </MotionCard>
               ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </MotionCard>
+
+        <MotionCard hover={false}>
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>Industry coverage</CardTitle>
+              <CardDescription>
+                Verticals explicitly named in the deck
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <motion.div
+                className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+                variants={staggerContainer}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.2 }}
+              >
+                {industries.map((industry) => (
+                  <MotionCard
+                    key={industry}
+                    className="rounded-2xl border border-border/70 bg-muted/20 px-3 py-3 text-sm text-foreground"
+                  >
+                    {industry}
+                  </MotionCard>
+                ))}
+              </motion.div>
+            </CardContent>
+          </Card>
+        </MotionCard>
+      </motion.div>
 
       <Card className="mt-6">
         <CardHeader>
@@ -713,19 +933,34 @@ export function EngagementSection() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <motion.div
+            className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.15 }}
+          >
             {industryWiseGallery.map((group) => (
-              <div
+              <MotionCard
                 key={group.industry}
+                hover={false}
                 className="rounded-xl border border-border/70 bg-muted/20 p-4"
               >
                 <h4 className="mb-3 text-sm font-semibold text-foreground">
                   {group.industry}
                 </h4>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                <motion.div
+                  className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+                  variants={staggerContainer}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, amount: 0.15 }}
+                >
                   {group.images.map((src, index) => (
-                    <div
+                    <motion.div
                       key={src}
+                      variants={staggerItem}
+                      whileHover={{ scale: 1.03, y: -2 }}
                       className="relative aspect-[4/3] overflow-hidden rounded-lg border border-border/70 bg-background"
                     >
                       <Image
@@ -735,12 +970,12 @@ export function EngagementSection() {
                         className="object-contain p-2"
                         loading="lazy"
                       />
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
-              </div>
+                </motion.div>
+              </MotionCard>
             ))}
-          </div>
+          </motion.div>
         </CardContent>
       </Card>
     </SectionShell>

@@ -166,6 +166,7 @@ function SectionShell({
   title,
   description,
   className,
+  disableInViewAnimation,
   children,
 }: {
   id: string;
@@ -173,14 +174,17 @@ function SectionShell({
   title: string;
   description: string;
   className?: string;
+  disableInViewAnimation?: boolean;
   children: ReactNode;
 }) {
   return (
     <motion.section
       id={id}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, amount: 0.2 }}
+      initial={disableInViewAnimation ? "visible" : "hidden"}
+      whileInView={disableInViewAnimation ? undefined : "visible"}
+      viewport={
+        disableInViewAnimation ? undefined : { once: true, amount: 0.2 }
+      }
       transition={{ duration: 0.5 }}
       variants={fadeUp}
       className={cn("scroll-mt-24 px-4 py-20 sm:px-6 lg:px-8", className)}
@@ -348,7 +352,7 @@ export function HeroSection() {
                 className={cn("overflow-hidden", pillar.accent)}
               >
                 <CardHeader>
-                  <CardTitle>{pillar.title}</CardTitle>
+                  <CardTitle className="text-white">{pillar.title}</CardTitle>
                   <CardDescription>{pillar.description}</CardDescription>
                 </CardHeader>
               </MotionCard>
@@ -487,9 +491,14 @@ export function PlatformSection() {
         </TabsList>
 
         {platformTabs.map((tab) => (
-          <TabsContent key={tab.id} value={tab.id}>
-            <MotionCard hover={false}>
-              <Card>
+          <TabsContent
+            key={tab.id}
+            value={tab.id}
+            forceMount
+            className="data-[state=inactive]:hidden"
+          >
+            <MotionCard hover={false} className="h-full">
+              <Card className="h-full">
                 <CardHeader>
                   <CardTitle>{tab.title}</CardTitle>
                   <CardDescription>{tab.description}</CardDescription>
@@ -856,6 +865,120 @@ export function InsightsSection() {
   );
 }
 
+function EngagementModelsCard() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.08 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className="h-full"
+    >
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle>Engagement models</CardTitle>
+          <CardDescription>How the company delivers work</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2">
+          {engagementModels.map((item, index) => (
+            <motion.div
+              key={item.title}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.01 }}
+              transition={{ delay: index * 0.03, duration: 0.3 }}
+              className="rounded-2xl border border-border/70 bg-muted/20 p-4"
+            >
+              <div className="font-medium text-foreground">{item.title}</div>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                {item.description}
+              </p>
+            </motion.div>
+          ))}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+function IndustryCoverageCard() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.08 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className="h-full"
+    >
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle>Industry coverage</CardTitle>
+          <CardDescription>
+            Verticals explicitly named in the deck
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {industries.map((industry, index) => (
+              <motion.div
+                key={industry}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.01 }}
+                transition={{ delay: index * 0.02, duration: 0.28 }}
+                className="rounded-2xl border border-border/70 bg-muted/20 px-3 py-3 text-sm text-foreground"
+              >
+                {industry}
+              </motion.div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+function IndustryLogoGroupCard({
+  group,
+}: {
+  group: { industry: string; images: string[] };
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.02 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="rounded-xl border border-border/70 bg-muted/20 p-4"
+    >
+      <h4 className="mb-3 text-sm font-semibold text-foreground">
+        {group.industry}
+      </h4>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {group.images.map((src, index) => (
+          <motion.div
+            key={src}
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.01 }}
+            transition={{ delay: index * 0.015, duration: 0.25 }}
+            whileHover={{ scale: 1.03, y: -2 }}
+            className="relative aspect-[4/3] overflow-hidden rounded-lg border border-border/70 bg-background"
+          >
+            <Image
+              src={src}
+              alt={`${group.industry} customer logo ${index + 1}`}
+              fill
+              className="object-contain p-2"
+              loading="lazy"
+            />
+          </motion.div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
 export function EngagementSection() {
   return (
     <SectionShell
@@ -863,67 +986,12 @@ export function EngagementSection() {
       eyebrow="Engagement and industries"
       title="Flexible delivery models aligned with real industry needs"
       description="The company presents multiple engagement models and a broad set of verticals supported by the same Microsoft delivery discipline."
+      disableInViewAnimation
     >
-      <motion.div
-        className="grid items-stretch gap-4 xl:grid-cols-[1fr_1fr]"
-        variants={staggerContainer}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.18 }}
-      >
-        <MotionCard hover={false}>
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>Engagement models</CardTitle>
-              <CardDescription>How the company delivers work</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              {engagementModels.map((item) => (
-                <MotionCard
-                  key={item.title}
-                  className="rounded-2xl border border-border/70 bg-muted/20 p-4"
-                >
-                  <div className="font-medium text-foreground">
-                    {item.title}
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    {item.description}
-                  </p>
-                </MotionCard>
-              ))}
-            </CardContent>
-          </Card>
-        </MotionCard>
-
-        <MotionCard hover={false}>
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>Industry coverage</CardTitle>
-              <CardDescription>
-                Verticals explicitly named in the deck
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <motion.div
-                className="grid grid-cols-2 gap-3 sm:grid-cols-3"
-                variants={staggerContainer}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.2 }}
-              >
-                {industries.map((industry) => (
-                  <MotionCard
-                    key={industry}
-                    className="rounded-2xl border border-border/70 bg-muted/20 px-3 py-3 text-sm text-foreground"
-                  >
-                    {industry}
-                  </MotionCard>
-                ))}
-              </motion.div>
-            </CardContent>
-          </Card>
-        </MotionCard>
-      </motion.div>
+      <div className="grid items-stretch gap-4 xl:grid-cols-2">
+        <EngagementModelsCard />
+        <IndustryCoverageCard />
+      </div>
 
       <Card className="mt-6">
         <CardHeader>
@@ -933,49 +1001,11 @@ export function EngagementSection() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <motion.div
-            className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.15 }}
-          >
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {industryWiseGallery.map((group) => (
-              <MotionCard
-                key={group.industry}
-                hover={false}
-                className="rounded-xl border border-border/70 bg-muted/20 p-4"
-              >
-                <h4 className="mb-3 text-sm font-semibold text-foreground">
-                  {group.industry}
-                </h4>
-                <motion.div
-                  className="grid grid-cols-2 gap-2 sm:grid-cols-3"
-                  variants={staggerContainer}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true, amount: 0.15 }}
-                >
-                  {group.images.map((src, index) => (
-                    <motion.div
-                      key={src}
-                      variants={staggerItem}
-                      whileHover={{ scale: 1.03, y: -2 }}
-                      className="relative aspect-[4/3] overflow-hidden rounded-lg border border-border/70 bg-background"
-                    >
-                      <Image
-                        src={src}
-                        alt={`${group.industry} customer logo ${index + 1}`}
-                        fill
-                        className="object-contain p-2"
-                        loading="lazy"
-                      />
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </MotionCard>
+              <IndustryLogoGroupCard key={group.industry} group={group} />
             ))}
-          </motion.div>
+          </div>
         </CardContent>
       </Card>
     </SectionShell>
